@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FoodWise — Smart Food Waste Tracker & Analytics</title>
+  <meta name="description" content="Track food waste, analyze financial loss, and receive smart AI insights to build sustainable kitchen habits.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="vendor/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">🌱</div>
+        <div class="brand-text">
+          <h2>FoodWise</h2>
+          <span class="brand-tagline">Waste Less • Save More</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-view="dashboard" id="nav-dashboard">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label">Dashboard</span>
+        </button>
+        <button class="nav-item" data-view="add-waste" id="nav-add-waste">
+          <span class="nav-icon">➕</span>
+          <span class="nav-label">Add Waste</span>
+        </button>
+        <button class="nav-item" data-view="records" id="nav-records">
+          <span class="nav-icon">📋</span>
+          <span class="nav-label">Waste Records</span>
+        </button>
+        <button class="nav-item" data-view="analytics" id="nav-analytics">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Analytics</span>
+        </button>
+        <button class="nav-item" data-view="insights" id="nav-insights">
+          <span class="nav-icon">💡</span>
+          <span class="nav-label">Smart Insights</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="score-card-mini">
+          <div class="score-mini-header">
+            <span class="score-mini-label">Reduction Score</span>
+            <span class="score-mini-val" id="sidebar-score-val">--</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="sidebar-score-bar" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="system-status">
+          <span class="status-indicator online" id="status-indicator"></span>
+          <span class="status-text" id="status-text">Connecting...</span>
+        </div>
+        <div class="app-version">FoodWise Web v1.0</div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Top Header -->
+      <header class="top-header">
+        <div class="header-welcome">
+          <h1 id="header-greeting">Welcome back! 👋</h1>
+          <p id="header-subtitle">Here is your kitchen food waste and sustainability summary.</p>
+        </div>
+        <div class="header-actions">
+          <div class="date-badge" id="current-date-badge">--</div>
+          <button class="btn btn-primary" id="btn-quick-add" onclick="switchView('add-waste')">
+            <span>＋</span> Log Waste Entry
+          </button>
+        </div>
+      </header>
+
+      <!-- View Containers -->
+
+      <!-- VIEW 1: DASHBOARD -->
+      <section class="view active" id="view-dashboard">
+        <!-- Metric Cards Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card card-pink">
+            <div class="metric-icon-wrap">🍱</div>
+            <div class="metric-details">
+              <span class="metric-label">TOTAL WASTE</span>
+              <div class="metric-value" id="dash-total-qty">0.00 <span class="metric-unit">kg</span></div>
+              <span class="metric-subtext">Cumulative recorded weight</span>
+            </div>
+          </div>
+
+          <div class="metric-card card-peach">
+            <div class="metric-icon-wrap">💰</div>
+            <div class="metric-details">
+              <span class="metric-label">FINANCIAL LOSS</span>
+              <div class="metric-value" id="dash-total-loss">₹ 0.00</div>
+              <span class="metric-subtext">Estimated monetary loss</span>
+            </div>
+          </div>
+
+          <div class="metric-card card-cream">
+            <div class="metric-icon-wrap">📋</div>
+            <div class="metric-details">
+              <span class="metric-label">RECORDS LOGGED</span>
+              <div class="metric-value" id="dash-total-records">0</div>
+              <span class="metric-subtext">Individual waste logs</span>
+            </div>
+          </div>
+
+          <div class="metric-card card-emerald">
+            <div class="metric-icon-wrap">🌱</div>
+            <div class="metric-details">
+              <span class="metric-label">WASTE SCORE</span>
+              <div class="metric-value" id="dash-score">--/100</div>
+              <span class="metric-badge" id="dash-score-badge">Calculating...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Charts Row -->
+        <div class="dashboard-grid">
+          <div class="glass-card chart-container-card">
+            <div class="card-header-flex">
+              <div>
+                <h3>Waste by Food Category</h3>
+                <p class="card-subtitle">Distribution across common food groups</p>
+              </div>
+              <span class="tag-pill" id="top-category-pill">Top: None</span>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="dashCategoryChart"></canvas>
+            </div>
+          </div>
+
+          <div class="glass-card chart-container-card">
+            <div class="card-header-flex">
+              <div>
+                <h3>Waste Reasons Breakdown</h3>
+                <p class="card-subtitle">Root causes behind wasted food</p>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="dashReasonChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity & Recommendations Row -->
+        <div class="dashboard-grid">
+          <div class="glass-card">
+            <div class="card-header-flex">
+              <div>
+                <h3>Recent Waste Entries</h3>
+                <p class="card-subtitle">Latest items logged in your kitchen</p>
+              </div>
+              <button class="btn btn-ghost" onclick="switchView('records')">View All &rarr;</button>
+            </div>
+            <div class="recent-list" id="dash-recent-list">
+              <div class="empty-state">No waste records logged yet.</div>
+            </div>
+          </div>
+
+          <div class="glass-card">
+            <div class="card-header-flex">
+              <div>
+                <h3>Smart Recommendations</h3>
+                <p class="card-subtitle">AI suggestions for reducing your footprint</p>
+              </div>
+              <button class="btn btn-ghost" onclick="switchView('insights')">More Tips &rarr;</button>
+            </div>
+            <div class="insights-list" id="dash-insights-list">
+              <div class="insight-item">🌱 Loading smart insights...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 2: ADD WASTE -->
+      <section class="view" id="view-add-waste">
+        <div class="page-title-block">
+          <h2>Add Food Waste Entry</h2>
+          <p>Record expired, spoiled, or leftover food to track your waste patterns.</p>
+        </div>
+
+        <div class="form-grid">
+          <div class="glass-card form-card">
+            <form id="add-waste-form" onsubmit="handleFormSubmit(event)">
+              <div class="form-group">
+                <label for="food_name">Food Name <span class="req">*</span></label>
+                <input type="text" id="food_name" name="food_name" placeholder="e.g. Cooked Basmati Rice, Milk, Tomatoes" required autocomplete="off">
+                <div class="quick-chips">
+                  <span>Quick pick:</span>
+                  <button type="button" class="chip" onclick="fillFoodName('Cooked Rice', 'Rice', 50)">🍚 Rice</button>
+                  <button type="button" class="chip" onclick="fillFoodName('Curry & Gravy', 'Vegetables', 80)">🍲 Curry</button>
+                  <button type="button" class="chip" onclick="fillFoodName('Fresh Milk', 'Dairy', 65)">🥛 Milk</button>
+                  <button type="button" class="chip" onclick="fillFoodName('Wheat Bread', 'Bread', 40)">🍞 Bread</button>
+                  <button type="button" class="chip" onclick="fillFoodName('Bananas', 'Fruits', 60)">🍌 Bananas</button>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="category">Category <span class="req">*</span></label>
+                  <select id="category" name="category" required>
+                    <option value="" disabled selected>Select category</option>
+                    <option value="Rice">🍚 Rice & Grains</option>
+                    <option value="Vegetables">🥕 Vegetables</option>
+                    <option value="Fruits">🍎 Fruits</option>
+                    <option value="Dairy">🧀 Dairy & Milk</option>
+                    <option value="Bread">🍞 Bread & Bakery</option>
+                    <option value="Meat">🍗 Meat & Seafood</option>
+                    <option value="Snacks">🍿 Snacks & Sweets</option>
+                    <option value="Other">📦 Other Food</option>
+                  </select>
+                </div>
+
+                <div class="form-group flex-1">
+                  <label for="quantity">Quantity <span class="req">*</span></label>
+                  <div class="input-with-unit">
+                    <input type="number" id="quantity" name="quantity" step="0.05" min="0.01" placeholder="0.50" required>
+                    <select id="unit" name="unit">
+                      <option value="kg" selected>kg</option>
+                      <option value="g">grams</option>
+                      <option value="litres">litres</option>
+                      <option value="items">items</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="price">Price per Unit (₹) <span class="req">*</span></label>
+                  <input type="number" id="price" name="price" step="0.5" min="0" placeholder="e.g. 50" required>
+                </div>
+
+                <div class="form-group flex-1">
+                  <label for="reason">Primary Reason <span class="req">*</span></label>
+                  <select id="reason" name="reason" required>
+                    <option value="Excess preparation" selected>Excess preparation</option>
+                    <option value="Leftover">Leftover / Plate waste</option>
+                    <option value="Spoiled">Spoiled / Molded</option>
+                    <option value="Expired">Passed Expiry Date</option>
+                    <option value="Overcooked">Overcooked / Burnt</option>
+                    <option value="Other">Other Reason</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-lg" id="btn-save-record">
+                  <span>＋</span> Save Waste Record
+                </button>
+                <button type="reset" class="btn btn-secondary btn-lg" onclick="resetFormPreview()">
+                  Clear Form
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Live Form Summary Preview -->
+          <div class="form-preview-column">
+            <div class="glass-card preview-card">
+              <h3>Live Entry Summary</h3>
+              <p class="card-subtitle">Real-time cost & environmental preview</p>
+              <div class="preview-metric">
+                <span class="preview-label">Estimated Loss</span>
+                <div class="preview-value" id="preview-loss">₹ 0.00</div>
+              </div>
+              <div class="preview-item-row">
+                <span>Item Name:</span>
+                <strong id="preview-name">—</strong>
+              </div>
+              <div class="preview-item-row">
+                <span>Category:</span>
+                <strong id="preview-category">—</strong>
+              </div>
+              <div class="preview-item-row">
+                <span>Quantity:</span>
+                <strong id="preview-qty">0.00 kg</strong>
+              </div>
+              <div class="preview-item-row">
+                <span>Reason:</span>
+                <strong id="preview-reason">—</strong>
+              </div>
+
+              <div class="preview-tip-box">
+                <div class="tip-icon">💡</div>
+                <div class="tip-content" id="preview-tip">
+                  Recording your waste accurately helps you identify patterns to buy and cook more mindfully.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: RECORDS -->
+      <section class="view" id="view-records">
+        <div class="page-title-block flex-between">
+          <div>
+            <h2>Waste Records History</h2>
+            <p>Manage, filter, and review all previous food waste logs.</p>
+          </div>
+          <div class="header-buttons">
+            <button class="btn btn-secondary" onclick="exportRecordsCSV()">
+              📥 Export CSV
+            </button>
+            <button class="btn btn-primary" onclick="switchView('add-waste')">
+              ＋ Add Record
+            </button>
+          </div>
+        </div>
+
+        <div class="glass-card filter-bar">
+          <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="record-search" placeholder="Search by food name..." oninput="filterRecordsTable()">
+          </div>
+          <div class="filters-flex">
+            <select id="filter-category" onchange="filterRecordsTable()">
+              <option value="ALL">All Categories</option>
+              <option value="Rice">Rice</option>
+              <option value="Vegetables">Vegetables</option>
+              <option value="Fruits">Fruits</option>
+              <option value="Dairy">Dairy</option>
+              <option value="Bread">Bread</option>
+              <option value="Meat">Meat</option>
+              <option value="Snacks">Snacks</option>
+              <option value="Other">Other</option>
+            </select>
+
+            <select id="filter-reason" onchange="filterRecordsTable()">
+              <option value="ALL">All Reasons</option>
+              <option value="Excess preparation">Excess preparation</option>
+              <option value="Leftover">Leftover</option>
+              <option value="Spoiled">Spoiled</option>
+              <option value="Expired">Expired</option>
+              <option value="Overcooked">Overcooked</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="records-counter" id="records-counter">Showing 0 records</div>
+        </div>
+
+        <div class="glass-card table-card">
+          <div class="table-responsive">
+            <table class="data-table" id="records-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Food Item</th>
+                  <th>Category</th>
+                  <th>Quantity</th>
+                  <th>Unit Price</th>
+                  <th>Est. Loss</th>
+                  <th>Reason</th>
+                  <th>Date</th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="records-table-body">
+                <tr>
+                  <td colspan="9" class="table-loading">Loading records...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 4: ANALYTICS -->
+      <section class="view" id="view-analytics">
+        <div class="page-title-block">
+          <h2>Waste Analytics & Trends</h2>
+          <p>Visual breakdown of food waste categories, causes, and financial metrics.</p>
+        </div>
+
+        <div class="analytics-charts-grid">
+          <div class="glass-card full-chart-card">
+            <div class="card-header-flex">
+              <div>
+                <h3>Wasted Quantity by Food Category (kg)</h3>
+                <p class="card-subtitle">Comparison across categories</p>
+              </div>
+            </div>
+            <div class="chart-wrapper-tall">
+              <canvas id="analyticsBarChart"></canvas>
+            </div>
+          </div>
+
+          <div class="glass-card half-chart-card">
+            <div class="card-header-flex">
+              <div>
+                <h3>Root Causes of Food Waste</h3>
+                <p class="card-subtitle">Frequency of reported reasons</p>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="analyticsPieChart"></canvas>
+            </div>
+          </div>
+
+          <div class="glass-card half-chart-card">
+            <div class="card-header-flex">
+              <div>
+                <h3>Frequently Wasted Food Items</h3>
+                <p class="card-subtitle">Items repeatedly thrown out</p>
+              </div>
+            </div>
+            <div class="top-foods-list" id="top-foods-list">
+              <div class="empty-state">No repeat items logged yet.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 5: SMART INSIGHTS -->
+      <section class="view" id="view-insights">
+        <div class="page-title-block">
+          <h2>Smart Insights & Food Habits</h2>
+          <p>Personalized tips and preservation techniques to minimize waste.</p>
+        </div>
+
+        <div class="insights-container">
+          <!-- Score Banner -->
+          <div class="glass-card score-hero-card">
+            <div class="score-hero-info">
+              <span class="score-hero-label">CURRENT KITCHEN EFFICIENCY SCORE</span>
+              <div class="score-hero-number" id="insights-score-num">-- / 100</div>
+              <h3 id="insights-score-status">Calculating your sustainability level...</h3>
+              <p id="insights-score-desc">This score calculates waste frequency, volume, and repetitive patterns to evaluate your kitchen management.</p>
+            </div>
+            <div class="score-hero-gauge">
+              <div class="circular-score-wrapper">
+                <svg viewBox="0 0 100 100" class="circular-chart">
+                  <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                  <path class="circle-progress" id="circle-progress-path" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                  <text x="18" y="20.35" class="circle-text" id="circle-score-text">--%</text>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Algorithmic Insights -->
+          <div class="glass-card">
+            <div class="card-header-flex">
+              <div>
+                <h3>Personalized Habit Alerts</h3>
+                <p class="card-subtitle">Automated detections based on your logged records</p>
+              </div>
+              <span class="badge badge-emerald">Live Analysis</span>
+            </div>
+            <div class="insights-dynamic-feed" id="insights-dynamic-feed">
+              <div class="insight-pill-card">
+                <span class="insight-icon">🌱</span>
+                <span>Start adding waste records to generate algorithmic insights.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Kitchen Pro-Tips Grid -->
+          <h3 class="section-heading">Best Practice Storage & Preservation Guides</h3>
+          <div class="tips-grid">
+            <div class="glass-card tip-card">
+              <div class="tip-card-icon">🥛</div>
+              <h4>Dairy & Milk</h4>
+              <p>Store milk and cheeses on interior refrigerator shelves rather than the door shelves to avoid temperature fluctuations each time the door opens.</p>
+            </div>
+
+            <div class="glass-card tip-card">
+              <div class="tip-card-icon">🥕</div>
+              <h4>Vegetables & Herbs</h4>
+              <p>Store leafy greens with a dry paper towel to absorb excess moisture. Blanch and freeze surplus vegetables in portion sizes before they turn soft.</p>
+            </div>
+
+            <div class="glass-card tip-card">
+              <div class="tip-card-icon">🍲</div>
+              <h4>Cooked Meals & Leftovers</h4>
+              <p>Use clear, airtight containers labeled with the cooking date. Keep leftovers near the front of the fridge and designate one dinner a week as "Use-It-Up Night".</p>
+            </div>
+
+            <div class="glass-card tip-card">
+              <div class="tip-card-icon">🍞</div>
+              <h4>Bread & Bakery</h4>
+              <p>Keep bread at room temperature in a bread box or freeze slices directly. Never refrigerate bread as it accelerates starch crystallization and makes it go stale.</p>
+            </div>
+          </div>
+
+          <!-- Interactive Savings Potential Calculator -->
+          <div class="glass-card calculator-card">
+            <div class="card-header-flex">
+              <div>
+                <h3>Financial Savings Estimator</h3>
+                <p class="card-subtitle">See how much you could save by reducing food waste</p>
+              </div>
+            </div>
+            <div class="calculator-body">
+              <div class="calc-current">
+                <span>Current Recorded Loss:</span>
+                <strong id="calc-current-loss">₹ 0.00</strong>
+              </div>
+              <div class="calc-options">
+                <div class="calc-stat-box">
+                  <span class="calc-perc">Reduce 20%</span>
+                  <div class="calc-saved" id="calc-save-20">Save ₹ 0.00</div>
+                </div>
+                <div class="calc-stat-box highlight">
+                  <span class="calc-perc">Reduce 50%</span>
+                  <div class="calc-saved" id="calc-save-50">Save ₹ 0.00</div>
+                </div>
+                <div class="calc-stat-box">
+                  <span class="calc-perc">Reduce 80%</span>
+                  <div class="calc-saved" id="calc-save-80">Save ₹ 0.00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal-box">
+      <div class="modal-icon">⚠️</div>
+      <h3>Confirm Deletion</h3>
+      <p id="delete-modal-msg">Are you sure you want to delete this food waste record? This action cannot be undone.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+        <button class="btn btn-danger" id="confirm-delete-btn">Delete Record</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
